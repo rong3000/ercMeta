@@ -3,3 +3,9 @@ env/
 .idea/
 credentials/*
 .env
+bin/*
+include/*
+lib/*
+lib64/*
+share/*
+pyvenv.cfg
