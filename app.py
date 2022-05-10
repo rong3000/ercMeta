@@ -30,7 +30,7 @@ PERCENT_BOOST_ATTRIBUTES = [5, 10, 15]
 NUMBER_ATTRIBUTES = [1, 2, 1, 1]
 
 
-@app.route('/api/elements/<token_id>')
+@app.route('/api/element/<token_id>')
 def element(token_id):
     token_id = int(token_id)
     element_name = "element ""%s" % token_id
@@ -167,20 +167,24 @@ def _compose_image(filenames, token_id, path):
     for filename in filenames:
 
         blobIn = bucket.blob(f"{filename}")
-        with tempfile.NamedTemporaryFile() as temp:
-          blobIn.download_to_filename(temp.name)
-          foreground = Image.open(temp.name).convert("RGBA")
+        with tempfile.NamedTemporaryFile() as tempIn:
+          blobIn.download_to_filename(tempIn.name)
+          foreground = Image.open(tempIn.name).convert("RGBA")
 
         if composite:
             composite = Image.alpha_composite(composite, foreground)
         else:
             composite = foreground
 
-    output_path = "images/output/%s.png" % token_id
-    composite.save(output_path)
+    with tempfile.NamedTemporaryFile(suffix='.png') as tempOut:
+        composite.save(tempOut.name)
+        blobOut = bucket.blob(f"{path}/{token_id}.png")
+        blobOut.upload_from_filename(filename=tempOut.name)
 
-    blobOut = bucket.blob(f"{path}/{token_id}.png")
-    blobOut.upload_from_filename(filename=output_path)
+
+    # output_path = "images/output/%s.png" % token_id
+    # composite.save(output_path)
+
     return blobOut.public_url
 
 
