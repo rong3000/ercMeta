@@ -95,6 +95,7 @@ def element(token_id):
         'attributes': attributes
     })
 
+
 @app.route('/api/forged/<token_id>')
 def forged(token_id):
     token_id = int(token_id)
@@ -180,17 +181,18 @@ def box(token_id):
 
 def _get_element_attribute(existing, token_id):
     bucket = _get_bucket()
-
-    # composite = None
-
-    blobIn = bucket.blob(f"element/{token_id}.json")
-    data = json.loads(blobIn.download_as_string(client=None))
-    # data = {
-    #     "trait_type": "not revealed yet",
-    #     "value": "not revealed yet"
-    # }
-    print(data)
+    filename = f'element/{token_id}.json'
+    stats = storage.Blob(bucket=bucket, name=filename).exists()
+    if stats:
+        blobIn = bucket.blob(f"element/{token_id}.json")
+        data = json.loads(blobIn.download_as_string(client=None))
+    else:
+        data = {
+            "trait_type": "not revealed yet",
+            "value": "not revealed yet"
+        }
     existing.append(data)
+
 
 def _add_attribute(existing, attribute_name, options, token_id, display_type=None):
     trait = {
@@ -210,8 +212,8 @@ def _compose_image(filenames, token_id, path):
 
         blobIn = bucket.blob(f"{filename}")
         with tempfile.NamedTemporaryFile() as tempIn:
-          blobIn.download_to_filename(tempIn.name)
-          foreground = Image.open(tempIn.name).convert("RGBA")
+            blobIn.download_to_filename(tempIn.name)
+            foreground = Image.open(tempIn.name).convert("RGBA")
 
         if composite:
             composite = Image.alpha_composite(composite, foreground)
@@ -223,18 +225,21 @@ def _compose_image(filenames, token_id, path):
         blobOut = bucket.blob(f"{path}/{token_id}.png")
         blobOut.upload_from_filename(filename=tempOut.name)
 
-
     # output_path = "images/output/%s.png" % token_id
     # composite.save(output_path)
 
     return blobOut.public_url
 
-
 def _get_element_image(token_id):
     bucket = _get_bucket()
-    blobIn = bucket.blob(f"element/{token_id}.png")
-    return blobIn.public_url
-
+    filename = f'element/{token_id}.png'
+    stats = storage.Blob(bucket=bucket, name=filename).exists()
+    if stats:
+        blobIn = bucket.blob(f"element/{token_id}.png")
+        return blobIn.public_url
+    else:
+        blobUnrevealed = bucket.blob(f"element/unrevealed.png")
+        return blobUnrevealed.public_url
 
 def _get_bucket():
     credentials = service_account.Credentials.from_service_account_file(
