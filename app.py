@@ -98,68 +98,43 @@ def element(token_id):
 
 @app.route('/api/forged/<token_id>')
 def forged(token_id):
-    token_id = int(token_id)
+    
     forged_name = "forged ""%s" % token_id
+    bucket = _get_bucket()
+    filename = f'forged/{token_id}.json'
+    stats = storage.Blob(bucket=bucket, name=filename).exists()
+    if stats:
+        blobIn = bucket.blob(f"element/{token_id}.json")
+        data = json.loads(blobIn.download_as_string(client=None))
+        return data
+    else:
+        splitLeftOver = len(token_id) % 4
+        print(splitLeftOver)
+        tokenId = token_id
+        token_ids = []
+        if splitLeftOver != 0:
 
-    base = BASES[token_id % len(BASES)]
-    eyes = EYES[token_id % len(EYES)]
-    mouth = MOUTH[token_id % len(MOUTH)]
-    # image_url = _compose_image(['images/bases/base-%s.png' % base,
-    #                             'images/eyes/eyes-%s.png' % eyes,
-    #                             'images/mouths/mouth-%s.png' % mouth],
-    #                            token_id, "element")
-    image_url = _compose_image(['element/bases/base-goldfish.png',
-                                'element/eyes/eyes-big.png',
-                                'element/mouths/mouth-pleased.png'],
-                               token_id, "element")
+            token_ids.append(int(tokenId[0:splitLeftOver]))
+            tokenId = tokenId[splitLeftOver:]
 
-    attributes = []
-    # _add_attribute(attributes, 'base', BASES, token_id)
-    # _add_attribute(attributes, 'eyes', EYES, token_id)
-    # _add_attribute(attributes, 'mouth', MOUTH, token_id)
-    # _add_attribute(attributes, 'level', INT_ATTRIBUTES, token_id)
-    # _add_attribute(attributes, 'stamina', FLOAT_ATTRIBUTES, token_id)
-    # _add_attribute(attributes, 'personality', STR_ATTRIBUTES, token_id)
-    # _add_attribute(attributes, 'aqua_power', BOOST_ATTRIBUTES, token_id, display_type="boost_number")
-    # _add_attribute(attributes, 'stamina_increase', PERCENT_BOOST_ATTRIBUTES, token_id, display_type="boost_percentage")
-    # _add_attribute(attributes, 'generation', NUMBER_ATTRIBUTES, token_id, display_type="number")
 
-    ELEMENTS = [
-        {
-            'trait_type': 'base',
-            'value': ['jellyfish', 'starfish', 'crab', 'narwhal', 'tealfish', 'goldfish']
-        },
-        {
-            'trait_type': 'eyes',
-            'value': ['big', 'joy', 'wink', 'sleepy', 'content', 'watery']
-        },
-        {
-            'trait_type': 'mouth',
-            'value': ['happy', 'surprised', 'pleased', 'cute', 'sad', 'furious']
-        },
-        {
-            'trait_type': 'arms',
-            'value': ['long', 'short', 'bulky', 'slim', 'X long', 'x short']
-        },
-        {
-            'trait_type': 'legs',
-            'value': ['long', 'short', 'bulky', 'slim', 'X long', 'x short']
-        },
-        {
-            'trait_type': 'background',
-            'value': ['red', 'yellow', 'green', 'blue', 'white', 'purple']
-        },
-    ]
-
-    _add_attribute(attributes, ELEMENTS[token_id % len(
-        ELEMENTS)]['trait_type'], ELEMENTS[token_id % len(ELEMENTS)]['value'], token_id)
-
-    return jsonify({
-        'name': forged_name,
-        'description': "Forged Poo",
-        'image': image_url,
-        'attributes': attributes
-    })
+        while tokenId:
+            token_ids.append(int(tokenId[:4]))
+            tokenId = tokenId[4:]
+        print(token_ids)
+    
+        image_url = _compose_image(token_ids, token_id, "forged")
+    
+        attributes = []
+    
+        _add_attribute(attributes, token_ids)
+    
+        return jsonify({
+            'name': forged_name,
+            'description': "Forged Poo",
+            'image': image_url,
+            'attributes': attributes
+        })
 
 
 @app.route('/api/box/<token_id>')
@@ -194,23 +169,40 @@ def _get_element_attribute(existing, token_id):
     existing.append(data)
 
 
-def _add_attribute(existing, attribute_name, options, token_id, display_type=None):
-    trait = {
-        'trait_type': attribute_name,
-        'value': options[token_id % len(options)]
-    }
-    if display_type:
-        trait['display_type'] = display_type
-    existing.append(trait)
+def _get_element_image(token_id):
+    bucket = _get_bucket()
+    filename = f'element/{token_id}.png'
+    stats = storage.Blob(bucket=bucket, name=filename).exists()
+    if stats:
+        blobIn = bucket.blob(f"element/{token_id}.png")
+        return blobIn.public_url
+    else:
+        blobUnrevealed = bucket.blob(f"element/unrevealed.png")
+        return blobUnrevealed.public_url
 
 
-def _compose_image(filenames, token_id, path):
+def _add_attribute(existing, token_ids, display_type=None):
+    for token_id in token_ids:
+        bucket = _get_bucket()
+        filename = f'element/{token_id}.json'
+        stats = storage.Blob(bucket=bucket, name=filename).exists()
+        if stats:
+            blobIn = bucket.blob(f"element/{token_id}.json")
+            data = json.loads(blobIn.download_as_string(client=None))
+        else:
+            data = {
+                "trait_type": "not revealed yet",
+                "value": "not revealed yet"
+            }
+        existing.append(data)
+
+
+def _compose_image(token_ids, token_id, path):
     bucket = _get_bucket()
 
     composite = None
-    for filename in filenames:
-
-        blobIn = bucket.blob(f"{filename}")
+    for id in token_ids:
+        blobIn = bucket.blob(f"element/{str(id)}.png")
         with tempfile.NamedTemporaryFile() as tempIn:
             blobIn.download_to_filename(tempIn.name)
             foreground = Image.open(tempIn.name).convert("RGBA")
@@ -230,16 +222,6 @@ def _compose_image(filenames, token_id, path):
 
     return blobOut.public_url
 
-def _get_element_image(token_id):
-    bucket = _get_bucket()
-    filename = f'element/{token_id}.png'
-    stats = storage.Blob(bucket=bucket, name=filename).exists()
-    if stats:
-        blobIn = bucket.blob(f"element/{token_id}.png")
-        return blobIn.public_url
-    else:
-        blobUnrevealed = bucket.blob(f"element/unrevealed.png")
-        return blobUnrevealed.public_url
 
 def _get_bucket():
     credentials = service_account.Credentials.from_service_account_file(
