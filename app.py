@@ -6,6 +6,7 @@ from PIL import Image
 import os
 import mimetypes
 import tempfile
+import json
 
 GOOGLE_STORAGE_PROJECT = os.environ['GOOGLE_STORAGE_PROJECT']
 GOOGLE_STORAGE_BUCKET = os.environ['GOOGLE_STORAGE_BUCKET']
@@ -42,7 +43,71 @@ def element(token_id):
     #                             'images/eyes/eyes-%s.png' % eyes,
     #                             'images/mouths/mouth-%s.png' % mouth],
     #                            token_id, "element")
-    image_url = _compose_image(['element/bases/base-crab.png',
+    image_url = _get_element_image(token_id)
+
+    attributes = []
+    # _add_attribute(attributes, 'base', BASES, token_id)
+    # _add_attribute(attributes, 'eyes', EYES, token_id)
+    # _add_attribute(attributes, 'mouth', MOUTH, token_id)
+    # _add_attribute(attributes, 'level', INT_ATTRIBUTES, token_id)
+    # _add_attribute(attributes, 'stamina', FLOAT_ATTRIBUTES, token_id)
+    # _add_attribute(attributes, 'personality', STR_ATTRIBUTES, token_id)
+    # _add_attribute(attributes, 'aqua_power', BOOST_ATTRIBUTES, token_id, display_type="boost_number")
+    # _add_attribute(attributes, 'stamina_increase', PERCENT_BOOST_ATTRIBUTES, token_id, display_type="boost_percentage")
+    # _add_attribute(attributes, 'generation', NUMBER_ATTRIBUTES, token_id, display_type="number")
+
+    ELEMENTS = [
+        {
+            'trait_type': 'base',
+            'value': ['jellyfish', 'starfish', 'crab', 'narwhal', 'tealfish', 'goldfish']
+        },
+        {
+            'trait_type': 'eyes',
+            'value': ['big', 'joy', 'wink', 'sleepy', 'content', 'watery']
+        },
+        {
+            'trait_type': 'mouth',
+            'value': ['happy', 'surprised', 'pleased', 'cute', 'sad', 'furious']
+        },
+        {
+            'trait_type': 'arms',
+            'value': ['long', 'short', 'bulky', 'slim', 'X long', 'x short']
+        },
+        {
+            'trait_type': 'legs',
+            'value': ['long', 'short', 'bulky', 'slim', 'X long', 'x short']
+        },
+        {
+            'trait_type': 'background',
+            'value': ['red', 'yellow', 'green', 'blue', 'white', 'purple']
+        },
+    ]
+
+    _get_element_attribute(attributes, token_id)
+
+    # _add_attribute(attributes, ELEMENTS[token_id % len(
+    #     ELEMENTS)]['trait_type'], ELEMENTS[token_id % len(ELEMENTS)]['value'], token_id)
+
+    return jsonify({
+        'name': element_name,
+        'description': "One of the Poo's basic elements",
+        'image': image_url,
+        'attributes': attributes
+    })
+
+@app.route('/api/forged/<token_id>')
+def forged(token_id):
+    token_id = int(token_id)
+    forged_name = "forged ""%s" % token_id
+
+    base = BASES[token_id % len(BASES)]
+    eyes = EYES[token_id % len(EYES)]
+    mouth = MOUTH[token_id % len(MOUTH)]
+    # image_url = _compose_image(['images/bases/base-%s.png' % base,
+    #                             'images/eyes/eyes-%s.png' % eyes,
+    #                             'images/mouths/mouth-%s.png' % mouth],
+    #                            token_id, "element")
+    image_url = _compose_image(['element/bases/base-goldfish.png',
                                 'element/eyes/eyes-big.png',
                                 'element/mouths/mouth-pleased.png'],
                                token_id, "element")
@@ -89,8 +154,8 @@ def element(token_id):
         ELEMENTS)]['trait_type'], ELEMENTS[token_id % len(ELEMENTS)]['value'], token_id)
 
     return jsonify({
-        'name': element_name,
-        'description': "One of the Poo's basic elements",
+        'name': forged_name,
+        'description': "Forged Poo",
         'image': image_url,
         'attributes': attributes
     })
@@ -113,42 +178,19 @@ def box(token_id):
     })
 
 
-@app.route('/api/factory/<token_id>')
-def factory(token_id):
-    token_id = int(token_id)
-    if token_id == 0:
-        name = "One OpenSea creature"
-        description = "When you purchase this option, you will receive a single OpenSea creature of a random variety. " \
-                      "Enjoy and take good care of your aquatic being!"
-        image_url = _compose_image(
-            ['images/factory/egg.png'], token_id, "factory")
-        num_inside = 1
-    elif token_id == 1:
-        name = "Four OpenSea creatures"
-        description = "When you purchase this option, you will receive four OpenSea creatures of random variety. " \
-                      "Enjoy and take good care of your aquatic beings!"
-        image_url = _compose_image(
-            ['images/factory/four-eggs.png'], token_id, "factory")
-        num_inside = 4
-    elif token_id == 2:
-        name = "One OpenSea creature lootbox"
-        description = "When you purchase this option, you will receive one lootbox, which can be opened to reveal three " \
-                      "OpenSea creatures of random variety. Enjoy and take good care of these cute aquatic beings!"
-        image_url = _compose_image(
-            ['images/box/lootbox.png'], token_id, "factory")
-        num_inside = 3
+def _get_element_attribute(existing, token_id):
+    bucket = _get_bucket()
 
-    attributes = []
-    _add_attribute(attributes, 'number_inside', [num_inside], token_id)
+    # composite = None
 
-    return jsonify({
-        'name': name,
-        'description': description,
-        'image': image_url,
-        'external_url': 'https://example.com/?token_id=%s' % token_id,
-        'attributes': attributes
-    })
-
+    blobIn = bucket.blob(f"element/{token_id}.json")
+    data = json.loads(blobIn.download_as_string(client=None))
+    # data = {
+    #     "trait_type": "not revealed yet",
+    #     "value": "not revealed yet"
+    # }
+    print(data)
+    existing.append(data)
 
 def _add_attribute(existing, attribute_name, options, token_id, display_type=None):
     trait = {
@@ -186,6 +228,12 @@ def _compose_image(filenames, token_id, path):
     # composite.save(output_path)
 
     return blobOut.public_url
+
+
+def _get_element_image(token_id):
+    bucket = _get_bucket()
+    blobIn = bucket.blob(f"element/{token_id}.png")
+    return blobIn.public_url
 
 
 def _get_bucket():
