@@ -98,29 +98,24 @@ def element(token_id):
 
 @app.route('/api/forged/<token_id>')
 def forged(token_id):
-    
     forged_name = "forged ""%s" % token_id
     bucket = _get_bucket()
     filename = f'forged/{token_id}.json'
     stats = storage.Blob(bucket=bucket, name=filename).exists()
     if stats:
-        blobIn = bucket.blob(f"element/{token_id}.json")
+        blobIn = bucket.blob(f"forged/{token_id}.json")
         data = json.loads(blobIn.download_as_string(client=None))
         return data
     else:
-        splitLeftOver = len(token_id) % 4
-        print(splitLeftOver)
         tokenId = token_id
         token_ids = []
-        if splitLeftOver != 0:
-
-            token_ids.append(int(tokenId[0:splitLeftOver]))
-            tokenId = tokenId[splitLeftOver:]
-
-
+        
         while tokenId:
-            token_ids.append(int(tokenId[:4]))
-            tokenId = tokenId[4:]
+            print(int(tokenId[(len(tokenId)-4):]))
+            token_ids.append(int(tokenId[(len(tokenId)-4):]))
+            tokenId = tokenId[:(len(tokenId)-4)]
+        token_ids = list(set(token_ids))
+        token_ids = sorted(token_ids, key=lambda a : a % 10)
         print(token_ids)
     
         image_url = _compose_image(token_ids, token_id, "forged")
@@ -128,6 +123,21 @@ def forged(token_id):
         attributes = []
     
         _add_attribute(attributes, token_ids)
+
+        dataServed = json.dumps({
+            'name': forged_name,
+            'description': "Forged Poo",
+            'image': image_url,
+            'attributes': attributes
+        })
+        print("dataServed is ""%s" % dataServed)
+
+        blobOut = bucket.blob(f"forged/{token_id}.json")
+        blobOut.upload_from_string(dataServed)
+        # with tempfile.NamedTemporaryFile(suffix='.json') as tempOut:
+        #     dataServed.save(tempOut.name)
+        #     blobOut = bucket.blob(f"forged/{token_id}.json")
+        #     blobOut.upload_from_filename(filename=tempOut.name)
     
         return jsonify({
             'name': forged_name,
@@ -182,12 +192,12 @@ def _get_element_image(token_id):
 
 
 def _add_attribute(existing, token_ids, display_type=None):
-    for token_id in token_ids:
+    for id in token_ids:
         bucket = _get_bucket()
-        filename = f'element/{token_id}.json'
+        filename = f'element/{id}.json'
         stats = storage.Blob(bucket=bucket, name=filename).exists()
         if stats:
-            blobIn = bucket.blob(f"element/{token_id}.json")
+            blobIn = bucket.blob(f"element/{id}.json")
             data = json.loads(blobIn.download_as_string(client=None))
         else:
             data = {
@@ -202,10 +212,11 @@ def _compose_image(token_ids, token_id, path):
 
     composite = None
     for id in token_ids:
-        blobIn = bucket.blob(f"element/{str(id)}.png")
+        blobIn = bucket.blob(f"element/{id}.png")
         with tempfile.NamedTemporaryFile() as tempIn:
             blobIn.download_to_filename(tempIn.name)
             foreground = Image.open(tempIn.name).convert("RGBA")
+            # foreground = Image.open(tempIn.name)
 
         if composite:
             composite = Image.alpha_composite(composite, foreground)
