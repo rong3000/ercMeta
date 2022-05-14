@@ -98,27 +98,33 @@ def element(token_id):
 
 @app.route('/api/forged/<token_id>')
 def forged(token_id):
-    forged_name = "forged ""%s" % token_id
+    tokenId = token_id
+    token_ids = []
+    
+    while tokenId:
+        token_ids.append(int(tokenId[(len(tokenId)-4):]))
+        tokenId = tokenId[:(len(tokenId)-4)]
+    token_ids = list(set(token_ids))
+    token_ids = sorted(token_ids, key=lambda a : a % 10)
+    print(token_ids)
+    uniqueId = ''
+    for id in reversed(token_ids):
+        paddedId = str(id).zfill(4)
+        uniqueId += paddedId
+    
+    forged_name = "forged ""%s" % uniqueId
     bucket = _get_bucket()
-    filename = f'forged/{token_id}.json'
+    filename = f'forged/{uniqueId}.json'
     stats = storage.Blob(bucket=bucket, name=filename).exists()
     if stats:
-        blobIn = bucket.blob(f"forged/{token_id}.json")
+        blobIn = bucket.blob(f"forged/{uniqueId}.json")
         data = json.loads(blobIn.download_as_string(client=None))
         return data
     else:
-        tokenId = token_id
-        token_ids = []
-        
-        while tokenId:
-            print(int(tokenId[(len(tokenId)-4):]))
-            token_ids.append(int(tokenId[(len(tokenId)-4):]))
-            tokenId = tokenId[:(len(tokenId)-4)]
-        token_ids = list(set(token_ids))
-        token_ids = sorted(token_ids, key=lambda a : a % 10)
-        print(token_ids)
+
+
     
-        image_url = _compose_image(token_ids, token_id, "forged")
+        image_url = _compose_image(token_ids, uniqueId, "forged")
     
         attributes = []
     
@@ -132,7 +138,7 @@ def forged(token_id):
         })
         print("dataServed is ""%s" % dataServed)
 
-        blobOut = bucket.blob(f"forged/{token_id}.json")
+        blobOut = bucket.blob(f"forged/{uniqueId}.json")
         blobOut.upload_from_string(dataServed)
         # with tempfile.NamedTemporaryFile(suffix='.json') as tempOut:
         #     dataServed.save(tempOut.name)
@@ -212,7 +218,12 @@ def _compose_image(token_ids, token_id, path):
 
     composite = None
     for id in token_ids:
-        blobIn = bucket.blob(f"element/{id}.png")
+        filename = f'element/{id}.png'
+        stats = storage.Blob(bucket=bucket, name=filename).exists()
+        if stats:
+            blobIn = bucket.blob(f"element/{id}.png")
+        else:
+            blobIn = bucket.blob(f"element/unrevealed.png")
         with tempfile.NamedTemporaryFile() as tempIn:
             blobIn.download_to_filename(tempIn.name)
             foreground = Image.open(tempIn.name).convert("RGBA")
@@ -223,6 +234,8 @@ def _compose_image(token_ids, token_id, path):
         else:
             composite = foreground
 
+        # blobOut = bucket.blob(f"{path}/{token_id}.png")
+        # blobOut.upload_from_file(composite)
     with tempfile.NamedTemporaryFile(suffix='.png') as tempOut:
         composite.save(tempOut.name)
         blobOut = bucket.blob(f"{path}/{token_id}.png")
