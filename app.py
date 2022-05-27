@@ -96,8 +96,8 @@ def element(token_id):
     })
 
 
-@app.route('/api/forged/<token_id>')
-def forged(token_id):
+@app.route('/api/merged/<token_id>')
+def merged(token_id):
     tokenId = token_id
     token_ids = []
     
@@ -112,42 +112,42 @@ def forged(token_id):
         paddedId = str(id).zfill(4)
         uniqueId += paddedId
     
-    forged_name = "forged ""%s" % uniqueId
+    merged_name = "merged ""%s" % uniqueId
     bucket = _get_bucket()
-    filename = f'forged/{uniqueId}.json'
+    filename = f'merged/{uniqueId}.json'
     stats = storage.Blob(bucket=bucket, name=filename).exists()
     if stats:
-        blobIn = bucket.blob(f"forged/{uniqueId}.json")
+        blobIn = bucket.blob(f"merged/{uniqueId}.json")
         data = json.loads(blobIn.download_as_string(client=None))
         return data
     else:
 
 
     
-        image_url = _compose_image(token_ids, uniqueId, "forged")
+        image_url = _compose_image(token_ids, uniqueId, "merged")
     
         attributes = []
     
         _add_attribute(attributes, token_ids)
 
         dataServed = json.dumps({
-            'name': forged_name,
-            'description': "Forged Poo",
+            'name': merged_name,
+            'description': "Merged Poo",
             'image': image_url,
             'attributes': attributes
         })
         print("dataServed is ""%s" % dataServed)
 
-        blobOut = bucket.blob(f"forged/{uniqueId}.json")
+        blobOut = bucket.blob(f"merged/{uniqueId}.json")
         blobOut.upload_from_string(dataServed)
         # with tempfile.NamedTemporaryFile(suffix='.json') as tempOut:
         #     dataServed.save(tempOut.name)
-        #     blobOut = bucket.blob(f"forged/{token_id}.json")
+        #     blobOut = bucket.blob(f"merged/{token_id}.json")
         #     blobOut.upload_from_filename(filename=tempOut.name)
     
         return jsonify({
-            'name': forged_name,
-            'description': "Forged Poo",
+            'name': merged_name,
+            'description': "Merged Poo",
             'image': image_url,
             'attributes': attributes
         })
