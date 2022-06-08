@@ -100,19 +100,19 @@ def element(token_id):
 def merged(token_id):
     tokenId = token_id
     token_ids = []
-    
+
     while tokenId:
         if int(tokenId[(len(tokenId)-4):]) > 0:
-            token_ids.append(int(tokenId[(len(tokenId)-4):]))        
+            token_ids.append(int(tokenId[(len(tokenId)-4):]))
         tokenId = tokenId[:(len(tokenId)-4)]
     token_ids = list(set(token_ids))
-    token_ids = sorted(token_ids, key=lambda a : (a-1) % 10)
+    token_ids = sorted(token_ids, key=lambda a: (a-1) % 10)
     print(token_ids)
     uniqueId = ''
     for id in reversed(token_ids):
         paddedId = str(id).zfill(4)
         uniqueId += paddedId
-    
+
     merged_name = "merged ""%s" % uniqueId
     bucket = _get_bucket()
     filename = f'merged/{uniqueId}.json'
@@ -122,13 +122,10 @@ def merged(token_id):
         data = json.loads(blobIn.download_as_string(client=None))
         return data
     else:
-
-
-    
         image_url = _compose_image(token_ids, uniqueId, "merged")
-    
+
         attributes = []
-    
+
         _add_attribute(attributes, token_ids)
 
         dataServed = json.dumps({
@@ -145,13 +142,21 @@ def merged(token_id):
         #     dataServed.save(tempOut.name)
         #     blobOut = bucket.blob(f"merged/{token_id}.json")
         #     blobOut.upload_from_filename(filename=tempOut.name)
-    
-        return jsonify({
-            'name': merged_name,
-            'description': "Merged Poo",
-            'image': image_url,
-            'attributes': attributes
-        })
+        if int(token_id) > 10000:
+            return jsonify({
+                'name': merged_name,
+                'description': "Merged Poo",
+                'image': image_url,
+                'attributes': attributes
+            })
+        else:
+            return jsonify({
+                'name': "not exist",
+                'description': "Merged Poo",
+                'image': "not exist",
+                'attributes': "not exist"
+            })
+
 
 
 @app.route('/api/box/<token_id>')
