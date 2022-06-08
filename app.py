@@ -102,10 +102,11 @@ def merged(token_id):
     token_ids = []
     
     while tokenId:
-        token_ids.append(int(tokenId[(len(tokenId)-4):]))
+        if int(tokenId[(len(tokenId)-4):]) > 0:
+            token_ids.append(int(tokenId[(len(tokenId)-4):]))        
         tokenId = tokenId[:(len(tokenId)-4)]
     token_ids = list(set(token_ids))
-    token_ids = sorted(token_ids, key=lambda a : a % 10)
+    token_ids = sorted(token_ids, key=lambda a : (a-1) % 10)
     print(token_ids)
     uniqueId = ''
     for id in reversed(token_ids):
