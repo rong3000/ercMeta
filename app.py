@@ -7,11 +7,13 @@ import os
 import mimetypes
 import tempfile
 import json
+from flask_cors import CORS
 
 GOOGLE_STORAGE_PROJECT = os.environ['GOOGLE_STORAGE_PROJECT']
 GOOGLE_STORAGE_BUCKET = os.environ['GOOGLE_STORAGE_BUCKET']
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:5000"}})
 
 BASES = ['jellyfish', 'starfish', 'crab', 'narwhal', 'tealfish', 'goldfish']
 EYES = ['big', 'joy', 'wink', 'sleepy', 'content']
@@ -265,4 +267,4 @@ def _get_bucket():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, use_reloader=True)
+    app.run(host='127.0.0.1', port=9000, debug=True, use_reloader=True)
