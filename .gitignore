@@ -1,7 +1,6 @@
 env/
 *.DS_Store
 .idea/
-credentials/*
 .env
 bin/*
 include/*
