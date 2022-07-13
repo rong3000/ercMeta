@@ -159,25 +159,6 @@ def merged(token_id):
                 'attributes': "not exist"
             })
 
-
-
-@app.route('/api/box/<token_id>')
-def box(token_id):
-    token_id = int(token_id)
-    image_url = _compose_image(['images/box/lootbox.png'], token_id, "box")
-
-    attributes = []
-    _add_attribute(attributes, 'number_inside', [3], token_id)
-
-    return jsonify({
-        'name': "Creature Loot Box",
-        'description': "This lootbox contains some OpenSea Creatures! It can also be traded!",
-        'image': image_url,
-        'external_url': 'https://example.com/?token_id=%s' % token_id,
-        'attributes': attributes
-    })
-
-
 def _get_element_attribute(existing, token_id):
     bucket = _get_bucket()
     filename = f'element/{token_id}.json'
