@@ -35,7 +35,7 @@ NUMBER_ATTRIBUTES = [1, 2, 1, 1]
 
 @app.route('/api/element/<token_id>')
 def element(token_id):
-    token_id = int(token_id)
+    token_id = int(token_id, 16)
     if token_id < 10000:
         element_name = "element ""%s" % token_id
         image_url = _get_element_image(token_id)
