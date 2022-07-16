@@ -13,7 +13,7 @@ GOOGLE_STORAGE_PROJECT = os.environ['GOOGLE_STORAGE_PROJECT']
 GOOGLE_STORAGE_BUCKET = os.environ['GOOGLE_STORAGE_BUCKET']
 
 app = Flask(__name__)
-cors = CORS(app, resources={r"/api/*": {"origins": "https://poos.io"}})
+cors = CORS(app, resources={r"/api/*": {"origins": "http://localhost:5000"}})
 
 BASES = ['jellyfish', 'starfish', 'crab', 'narwhal', 'tealfish', 'goldfish']
 EYES = ['big', 'joy', 'wink', 'sleepy', 'content']
